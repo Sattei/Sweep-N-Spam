@@ -40,9 +40,7 @@ function updateProgress(processed, total) {
   document.getElementById("progress-container").style.display = "block";
   document.getElementById("progress-bar").style.width =
     Math.round((processed / total) * 100) + "%";
-  document.getElementById(
-    "status-text"
-  ).innerText = `Scanning... ${processed} / ${total}`;
+  document.getElementById("status-text").innerText = `Scanning... ${processed}`;
 }
 
 /* ================= SCAN ================= */

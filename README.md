@@ -44,11 +44,11 @@ The backend runs the AI model.
     The trained model file is too large for GitHub, so you must download it separately.
 
     - **Download Link:** https://drive.google.com/drive/folders/1wpnXBwCb4dVeyRNi58EWVOTOJ9_ZyqXy?usp=drive_link
-    - Download the file (likely named spam_classifier.pth).
+    - Download the file (likely named email_classifier_pytorch).
     - Place it directly inside the `backend/` folder.
 
 4.  Start the server:
-    python app.py
+    uvicorn app.main:app --reload
 
     You should see a message saying the server is running at http://127.0.0.1:8000.
 
