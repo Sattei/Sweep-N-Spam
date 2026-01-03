@@ -64,12 +64,13 @@ The backend runs the AI model.
 
 ## How to Use
 
-1.  **Start the Backend:** Ensure your Python server is running (`python app.py`).
+1.  **Start the Backend:** Ensure your Python server is running (`uvicorn app.main:app --reload`).
 2.  **Open Gmail:** Go to your Gmail tab in Chrome.
 3.  **Open the Side Panel:** Click the extension icon and select "Open Side Panel".
-4.  **Login:** Click the "Login" button to authorize Gmail access.
-5.  **Scan:** Click "Scan New (50)" to analyze your latest emails.
-6.  **Clean:** The AI will check the boxes for junk mail automatically. Review the list, then click "Move Selected to Trash".
+4.  **Scan & Auth:** Click "Scan New (50)".
+    - _Note:_ Google will automatically prompt you to authorize the extension the first time you click this.
+5.  **Clean:** The AI will analyze your emails and check the boxes for junk mail automatically.
+6.  **Delete:** Review the list, then click "Move Selected to Trash".
 
 ---
 
