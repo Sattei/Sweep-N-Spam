@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# ML model files (DO NOT COMMIT)
+email_classifier_pytorch/
+*.bin
+*.safetensors
+tokenizer.json
+tokenizer_config.json
+special_tokens_map.json
+vocab.txt
+_init_.py
+
+
+readme.model
+.env
+
+google_api_secret.json
+
+app/api/auth.py 
+app/services/token_store.py 
+app/services/gmail_service.py 
+config.json 
+
+app/api/gmail.py 
