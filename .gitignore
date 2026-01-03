@@ -1,0 +1,19 @@
+# Environments
+venv/
+.env
+
+# Secrets
+google_api_secret.json
+config.json
+
+# ML artifacts
+*.safetensors
+*.bin
+*.pt
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/

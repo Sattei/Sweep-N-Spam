@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Sweep N Spams",
+  "version": "3.0",
+  "description": "AI-powered email cleaner.",
+  "permissions": ["identity", "storage", "sidePanel", "tabs"],
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "http://localhost:8000/*"
+  ],
+  "oauth2": {
+    "client_id": "544433065636-1v5v1p8cjml4fgf3k82vsiaqagg2r444.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/gmail.modify"]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Sweep N Spams"
+  }
+}
