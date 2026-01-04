@@ -27,7 +27,7 @@ Follow these steps to set up the project locally.
 
 Open your terminal and run:
 
-git clone https://github.com/YOUR_USERNAME/sweep-n-spam.git
+git clone https://github.com/Sattei/Sweep-N-Spam
 cd sweep-n-spam
 
 ### Step 2: Setup the Backend (Python)
@@ -44,11 +44,11 @@ The backend runs the AI model.
     The trained model file is too large for GitHub, so you must download it separately.
 
     - **Download Link:** https://drive.google.com/drive/folders/1wpnXBwCb4dVeyRNi58EWVOTOJ9_ZyqXy?usp=drive_link
-    - Download the file (likely named spam_classifier.pth).
+    - Download the file (likely named email_classifier_pytorch).
     - Place it directly inside the `backend/` folder.
 
 4.  Start the server:
-    python app.py
+    uvicorn app.main:app --reload
 
     You should see a message saying the server is running at http://127.0.0.1:8000.
 
@@ -64,13 +64,12 @@ The backend runs the AI model.
 
 ## How to Use
 
-1.  **Start the Backend:** Ensure your Python server is running (`uvicorn app.main:app --reload`).
+1.  **Start the Backend:** Ensure your Python server is running (`python app.py`).
 2.  **Open Gmail:** Go to your Gmail tab in Chrome.
 3.  **Open the Side Panel:** Click the extension icon and select "Open Side Panel".
-4.  **Scan & Auth:** Click "Scan New (50)".
-    - _Note:_ Google will automatically prompt you to authorize the extension the first time you click this.
-5.  **Clean:** The AI will analyze your emails and check the boxes for junk mail automatically.
-6.  **Delete:** Review the list, then click "Move Selected to Trash".
+4.  **Login:** Click the "Login" button to authorize Gmail access.
+5.  **Scan:** Click "Scan New (50)" to analyze your latest emails.
+6.  **Clean:** The AI will check the boxes for junk mail automatically. Review the list, then click "Move Selected to Trash".
 
 ---
 

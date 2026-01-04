@@ -93,8 +93,3 @@ sweep-n-spam/
 ## Note for Recruiters/Developers
 
 This project demonstrates a full-stack implementation of a local AI tool, bridging the gap between raw ML models (PyTorch) and practical consumer software (Browser Extensions). It handles OAuth2 authentication, REST API communication, and efficient DOM manipulation.
-
----
-
-**Author:** [Your Name]
-**GitHub:** [Your GitHub Profile Link]
