@@ -9,7 +9,7 @@
     "http://localhost:8000/*"
   ],
   "oauth2": {
-    "client_id": "544433065636-1v5v1p8cjml4fgf3k82vsiaqagg2r444.apps.googleusercontent.com",
+    "client_id": CLIENT ID,
     "scopes": ["https://www.googleapis.com/auth/gmail.modify"]
   },
   "background": {
