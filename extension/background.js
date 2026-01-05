@@ -9,9 +9,6 @@ function extractSubject(headers) {
   return h ? h.value : "(no subject)";
 }
 
-/* ================= CURSOR STORAGE ================= */
-
-// Cursor = internalDate (ms) of the OLDEST processed email
 async function getStoredCursor() {
   const data = await chrome.storage.local.get("lastCursor");
   return data.lastCursor || null;
@@ -20,8 +17,6 @@ async function getStoredCursor() {
 async function setStoredCursor(cursor) {
   await chrome.storage.local.set({ lastCursor: cursor });
 }
-
-/* ================= MESSAGE HANDLER ================= */
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "FETCH_EMAILS") {
@@ -38,7 +33,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const limit = msg.limit || 50;
         const resume = msg.resume === true;
 
-        // Load cursor ONLY if resume
+       
         let cursor = resume ? await getStoredCursor() : null;
 
         let pageToken = null;
@@ -47,7 +42,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           let url =
             "https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=50";
 
-          // Apply DATE FILTER if resuming
           if (cursor) {
             const beforeSeconds = Math.floor(cursor / 1000);
             url += `&q=before:${beforeSeconds}`;
@@ -67,7 +61,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             break;
           }
 
-          // Process messages
           const batch = await Promise.all(
             listData.messages.map(async (m) => {
               try {
@@ -118,13 +111,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           pageToken = listData.nextPageToken;
         } while (pageToken && collected.length < limit);
 
-        // UPDATE CURSOR ONLY WHEN RESUMING
         if (resume && collected.length > 0) {
           const oldest = Math.min(...collected.map((e) => e.internalDate));
           await setStoredCursor(oldest);
         }
 
-        // Remove internalDate before sending to UI
         collected = collected.map(({ internalDate, ...rest }) => rest);
 
         sendResponse({ emails: collected });
@@ -135,8 +126,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     return true;
   }
-
-  /* ================= DELETE HANDLER ================= */
 
   if (msg.type === "DELETE_EMAILS") {
     chrome.identity.getAuthToken({ interactive: false }, async (token) => {
