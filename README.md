@@ -1,40 +1,57 @@
 # Sweep 'n Spam
 
-AI-Powered Email Cleaner for Gmail
+Deep Learning–Driven Email Cleaner for Gmail
 
-Sweep 'n Spam is a smart Chrome Extension that helps you reach "Inbox Zero" by automatically identifying and deleting unimportant emails (promotions, spam, newsletters). Unlike basic keyword filters, this project uses a custom-trained Machine Learning model (DistilBERT) to "read" and understand the context of your emails, ensuring only actual clutter is removed.
+Sweep ’n Spam is a Chrome Extension designed to help users achieve Inbox Zero by automatically identifying and removing low-priority emails such as promotions, newsletters, and spam. Instead of relying on heuristic rules or keyword matching, the system uses a fine-tuned DistilBERT classifier to perform contextual email classification, enabling reliable separation of important and unimportant messages.
+
+This project is a demonstration of how modern NLP deep learning models can be integrated into real-world consumer software through a local, privacy-preserving architecture.
 
 ## Key Features
 
-- **AI-Powered Classification:** Uses a fine-tuned DistilBERT model to classify emails as "Important" or "Unimportant" with high accuracy.
-- **Privacy First:** Your data stays private. The analysis happens locally on your machine via a Python backend—no emails are ever sent to external third-party servers.
-- **Bulk Action:** Scan hundreds of emails in seconds and delete junk in one click.
-- **Seamless UI:** Integrated directly into the browser via a modern Chrome Side Panel.
+
+### Contextual Email Classification (Deep Learning)
+Uses a fine-tuned DistilBERT model to classify emails as *Important* or *Unimportant* based on semantic context rather than surface-level keywords.
+
+### Local Inference & Privacy-Preserving Design
+All model inference runs locally via a Python backend. Email content is never transmitted to external servers, ensuring full user data privacy.
+
+### High-Throughput Bulk Processing
+Efficiently scans and classifies large batches of emails, enabling one-click cleanup of inbox clutter.
+
+### Native Browser Integration
+Delivered through a Chrome Side Panel interface for seamless interaction within Gmail.
+
 
 ## Tech Stack
 
-- **Frontend:** Chrome Extension (Manifest V3), HTML5, CSS3, JavaScript
-- **Backend:** Python 3.x, FastAPI
-- **Machine Learning:** PyTorch, HuggingFace Transformers, Scikit-learn
+
+### Frontend
+Chrome Extension (Manifest V3), HTML5, CSS3, JavaScript
+
+### Backend
+Python 3.x, FastAPI
+
+### Deep Learning & NLP
+PyTorch, Hugging Face Transformers (DistilBERT), Scikit-learn
+
 
 ---
 
 ## Installation Guide
 
+
 Follow these steps to set up the project locally.
 
 ### Step 1: Clone the Repository
 
-Open your terminal and run:
-
 git clone https://github.com/Sattei/Sweep-N-Spam
 cd sweep-n-spam
 
-### Step 2: Setup the Backend (Python)
+### Step 2: Backend Setup (Deep Learning Inference Server)
 
-The backend runs the AI model.
+The backend is responsible for running the trained classification model and exposing REST endpoints.
 
-1.  Navigate to the backend folder:
+1.  Navigate to the backend directory:
     cd backend
 
 2.  Install the required libraries:
@@ -53,6 +70,8 @@ The backend runs the AI model.
     You should see a message saying the server is running at http://127.0.0.1:8000.
 
 ### Step 3: Setup the Frontend (Chrome Extension)
+
+NOTE: Google client id must be generated from the Google Console and linked with the extension's local id for Google OAuth.
 
 1.  Open Google Chrome and go to `chrome://extensions`.
 2.  Enable **Developer Mode** using the toggle in the top-right corner.
@@ -75,21 +94,22 @@ The backend runs the AI model.
 
 ## Project Structure
 
+```text
 sweep-n-spam/
-├── backend/ # Python FastAPI Server
-│ ├── app.py # API Endpoints
-│ ├── model.py # Model Class Definition
-│ ├── spam_classifier.pth # Trained Model (Download separately)
-│ └── requirements.txt # Python dependencies
+├── backend/                 # Python FastAPI Server
+│   ├── app.py               # API Endpoints
+│   ├── model.py             # Model Class Definition
+│   ├── spam_classifier.pth  # Trained Model (download separately)
+│   └── requirements.txt     # Python dependencies
 │
-├── extension/ # Chrome Extension Files
-│ ├── manifest.json # Config & Permissions
-│ ├── sidepanel.html # UI Layout
-│ ├── sidepanel.js # Frontend Logic
-│ └── icons/ # App Icons
+├── extension/               # Chrome Extension Files
+│   ├── manifest.json        # Config & Permissions
+│   ├── sidepanel.html       # UI Layout
+│   ├── sidepanel.js         # Frontend Logic
+│   └── icons/               # App Icons
 │
-└── README.md # Project Documentation
+└── README.md                # Project Documentation
+```
 
-## Note for Recruiters/Developers
-
-This project demonstrates a full-stack implementation of a local AI tool, bridging the gap between raw ML models (PyTorch) and practical consumer software (Browser Extensions). It handles OAuth2 authentication, REST API communication, and efficient DOM manipulation.
+## Happy sweeping!
+---
