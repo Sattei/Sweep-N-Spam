@@ -1,74 +1,145 @@
 let currentEmails = [];
+let autoCleanRunning = false;
+
+const statusText = document.getElementById("status-text");
+
+const progressContainer = document.getElementById("progress-container");
+
+const progressBar = document.getElementById("progress-bar");
+
+const deleteWrapper = document.getElementById("deleteWrapper");
+
+const deleteButton = document.getElementById("btn-delete");
+
+const selectionActions = document.getElementById("selectionActions");
+
+const autoCleanButton = document.getElementById("btn-auto-clean");
+
+const stopAutoButton = document.getElementById("btn-stop-auto");
 
 /* ================= DARK MODE ================= */
 
-document.addEventListener("DOMContentLoaded", () => {
-  const toggle = document.getElementById("themeToggle");
+document.getElementById("themeToggle").addEventListener("click", () => {
+  document.body.classList.toggle("dark");
 
-  toggle.addEventListener("click", () => {
-    document.body.classList.toggle("dark");
-
-    toggle.innerText = document.body.classList.contains("dark")
-      ? "☀ Light"
-      : "🌙 Dark";
-  });
+  document.getElementById("themeToggle").innerText =
+    document.body.classList.contains("dark") ? "☀ Light" : "🌙 Dark";
 });
 
 /* ================= BUTTONS ================= */
 
 document.getElementById("btn-restart-50").onclick = () => {
-  startScan({ resume: false, limit: 50 });
+  startScan({
+    resume: false,
+    limit: 50,
+  });
 };
 
 document.getElementById("btn-restart-500").onclick = () => {
-  startScan({ resume: false, limit: 500 });
+  startScan({
+    resume: false,
+    limit: 500,
+  });
 };
 
 document.getElementById("btn-resume-50").onclick = () => {
-  startScan({ resume: true, limit: 50 });
+  startScan({
+    resume: true,
+    limit: 50,
+  });
 };
 
 document.getElementById("btn-resume-500").onclick = () => {
-  startScan({ resume: true, limit: 500 });
+  startScan({
+    resume: true,
+    limit: 500,
+  });
 };
 
-document.getElementById("btn-delete").onclick = deleteSelected;
+document.getElementById("btn-select-all").onclick = () => {
+  document.querySelectorAll(".chk").forEach((checkbox) => {
+    checkbox.checked = true;
+  });
 
-/* ================= PROGRESS ================= */
+  updateDeleteCount();
+};
 
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "UPDATE_PROGRESS") {
-    updateProgress(msg.processed, msg.total);
+document.getElementById("btn-clear-all").onclick = () => {
+  document.querySelectorAll(".chk").forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+
+  updateDeleteCount();
+};
+
+deleteButton.onclick = deleteSelected;
+
+autoCleanButton.onclick = startAutoClean;
+
+stopAutoButton.onclick = stopAutoClean;
+
+/* ================= MESSAGES ================= */
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "UPDATE_PROGRESS") {
+    updateProgress(message.processed, message.total);
+  }
+
+  if (message.type === "AUTO_CLEAN_SCAN_PROGRESS") {
+    progressContainer.style.display = "block";
+
+    const percentage = Math.min(
+      Math.round((message.scanned / message.maximum) * 100),
+      100,
+    );
+
+    progressBar.style.width = `${percentage}%`;
+
+    statusText.innerText =
+      `Auto clean: scanned ${message.scanned}, ` +
+      `moved ${message.deleted} to trash.`;
+  }
+
+  if (message.type === "AUTO_CLEAN_BATCH_COMPLETE") {
+    statusText.innerText =
+      `Auto clean: scanned ${message.scanned}, ` +
+      `moved ${message.deleted} to trash.`;
   }
 });
 
-function updateProgress(processed, total) {
-  const progressContainer = document.getElementById("progress-container");
-  const progressBar = document.getElementById("progress-bar");
-  const statusText = document.getElementById("status-text");
+/* ================= SCANNING ================= */
 
+function updateProgress(processed, total) {
   progressContainer.style.display = "block";
 
   const percentage =
     total > 0 ? Math.min(Math.round((processed / total) * 100), 100) : 0;
 
   progressBar.style.width = `${percentage}%`;
-  statusText.innerText = `Scanning... ${processed} of ${total}`;
+
+  statusText.innerText = `Scanning ${processed} of ${total}...`;
 }
 
-/* ================= SCAN ================= */
+function setScanButtonsDisabled(disabled) {
+  document
+    .querySelectorAll(
+      "#btn-restart-50, " +
+        "#btn-restart-500, " +
+        "#btn-resume-50, " +
+        "#btn-resume-500",
+    )
+    .forEach((button) => {
+      button.disabled = disabled;
+    });
+}
 
 function startScan({ resume, limit }) {
-  const deleteWrapper = document.getElementById("deleteWrapper");
-  const statusText = document.getElementById("status-text");
+  setScanButtonsDisabled(true);
 
   deleteWrapper.style.display = "none";
+  selectionActions.style.display = "none";
 
   updateProgress(0, limit);
-
-  document.querySelectorAll(".btn").forEach((button) => {
-    button.disabled = true;
-  });
 
   chrome.runtime.sendMessage(
     {
@@ -76,27 +147,32 @@ function startScan({ resume, limit }) {
       resume,
       limit,
     },
-    (res) => {
-      document.querySelectorAll(".btn").forEach((button) => {
-        button.disabled = false;
-      });
-
-      document.getElementById("progress-container").style.display = "none";
+    (response) => {
+      setScanButtonsDisabled(false);
+      progressContainer.style.display = "none";
 
       if (chrome.runtime.lastError) {
         statusText.innerText = "Could not scan emails.";
+
         console.error(chrome.runtime.lastError);
+
         return;
       }
 
-      if (!res || res.error) {
-        statusText.innerText = res?.error || "Could not scan emails.";
+      if (!response || response.error) {
+        statusText.innerText = response?.error || "Could not scan emails.";
+
         return;
       }
 
-      currentEmails = resume ? [...currentEmails, ...res.emails] : res.emails;
+      currentEmails = resume
+        ? [...currentEmails, ...response.emails]
+        : response.emails;
 
-      statusText.innerText = `Scan complete. ${currentEmails.length} emails loaded.`;
+      currentEmails = removeDuplicates(currentEmails);
+
+      statusText.innerText =
+        `Scan complete. ` + `${currentEmails.length} emails loaded.`;
 
       renderList();
     },
@@ -107,63 +183,85 @@ function startScan({ resume, limit }) {
 
 function renderList() {
   const results = document.getElementById("results");
-  const wrapper = document.getElementById("deleteWrapper");
 
   results.innerHTML = "";
 
   if (!currentEmails.length) {
-    wrapper.style.display = "none";
+    deleteWrapper.style.display = "none";
+    selectionActions.style.display = "none";
+
+    results.innerHTML = `
+      <div
+        style="
+          text-align:center;
+          color:var(--muted);
+          padding:24px 8px;
+          font-size:12px;
+        "
+      >
+        No emails to display.
+      </div>
+    `;
+
     return;
   }
 
   currentEmails.sort((a, b) => {
-    const aJunk = a.prediction?.label === "not_important";
-    const bJunk = b.prediction?.label === "not_important";
-
-    if (aJunk === bJunk) return 0;
-
-    return aJunk ? -1 : 1;
+    return (
+      labelPriority(a.prediction?.label) - labelPriority(b.prediction?.label)
+    );
   });
 
   currentEmails.forEach((email) => {
     const label = email.prediction?.label || "review";
-    const isJunk = label === "not_important";
-    const isReview = label === "review";
 
-    const rawConfidence = email.prediction?.confidence ?? 0;
-    const confidence = Math.round(rawConfidence * 100);
+    const confidence = Math.round(
+      Number(email.prediction?.confidence || 0) * 100,
+    );
 
-    let badgeText = "IMPORTANT";
+    const checked = label === "not_important" ? "checked" : "";
 
-    if (isJunk) {
-      badgeText = "UNIMPORTANT";
-    } else if (isReview) {
-      badgeText = "REVIEW";
+    let badgeHtml = "";
+
+    // Do not show an "UNIMPORTANT" badge.
+    if (label === "review") {
+      badgeHtml = `
+        <span class="badge badge-review">
+          REVIEW
+        </span>
+      `;
+    }
+
+    if (label === "important") {
+      badgeHtml = `
+        <span class="badge badge-important">
+          IMPORTANT
+        </span>
+      `;
     }
 
     const item = document.createElement("div");
+
     item.className = "email-item";
 
     item.innerHTML = `
-      ${
-        isJunk
-          ? `<input
-               type="checkbox"
-               class="chk"
-               data-id="${escapeHtml(email.id)}"
-               checked
-             />`
-          : `<div style="width:16px"></div>`
-      }
+      <input
+        type="checkbox"
+        class="chk"
+        data-id="${escapeHtml(email.id)}"
+        ${checked}
+      />
 
       <div class="email-content">
-        <div class="subject">${escapeHtml(
-          email.subject || "(no subject)",
-        )}</div>
+        <div class="subject">
+          ${escapeHtml(email.subject || "(no subject)")}
+        </div>
 
-        <div class="snippet">${escapeHtml(email.body || "")}</div>
+        <div class="snippet">
+          ${escapeHtml(email.body || "")}
+        </div>
 
-        <span class="badge">${badgeText}</span>
+        ${badgeHtml}
 
         <div class="confidence">
           <div class="confidence-label">
@@ -173,7 +271,9 @@ function renderList() {
           <div class="confidence-bar">
             <div
               class="confidence-fill"
-              style="width:${Math.min(confidence, 100)}%"
+              style="
+                width:${Math.min(confidence, 100)}%
+              "
             ></div>
           </div>
         </div>
@@ -187,75 +287,209 @@ function renderList() {
     checkbox.addEventListener("change", updateDeleteCount);
   });
 
+  selectionActions.style.display = "grid";
+
   updateDeleteCount();
 }
 
-/* ================= DELETE BUTTON ================= */
+function labelPriority(label) {
+  if (label === "not_important") {
+    return 0;
+  }
+
+  if (label === "review") {
+    return 1;
+  }
+
+  return 2;
+}
+
+function removeDuplicates(emails) {
+  const seen = new Set();
+
+  return emails.filter((email) => {
+    if (seen.has(email.id)) {
+      return false;
+    }
+
+    seen.add(email.id);
+    return true;
+  });
+}
+
+/* ================= DELETE ================= */
 
 function updateDeleteCount() {
   const checkedCount = document.querySelectorAll(".chk:checked").length;
-  const wrapper = document.getElementById("deleteWrapper");
-  const button = document.getElementById("btn-delete");
 
-  wrapper.style.display = currentEmails.length > 0 ? "block" : "none";
+  deleteWrapper.style.display = currentEmails.length > 0 ? "block" : "none";
 
-  button.style.background = "";
+  deleteButton.style.background = "";
 
   if (checkedCount > 0) {
-    button.disabled = false;
-    button.innerText = `Move ${checkedCount} Items to Trash`;
+    deleteButton.disabled = false;
+
+    deleteButton.innerText =
+      `Move ${checkedCount} ` +
+      `${checkedCount === 1 ? "Email" : "Emails"} to Trash`;
   } else {
-    button.disabled = true;
-    button.innerText = "Select emails to move to trash";
+    deleteButton.disabled = true;
+
+    deleteButton.innerText = "Select emails to move to trash";
   }
 }
 
-/* ================= DELETE EMAILS ================= */
-
 function deleteSelected() {
-  const ids = Array.from(document.querySelectorAll(".chk:checked")).map(
-    (checkbox) => checkbox.dataset.id,
+  const selectedIds = Array.from(document.querySelectorAll(".chk:checked")).map(
+    (checkbox) => {
+      return checkbox.dataset.id;
+    },
   );
 
-  if (!ids.length) return;
+  if (!selectedIds.length) {
+    return;
+  }
 
-  const button = document.getElementById("btn-delete");
-  const statusText = document.getElementById("status-text");
+  const confirmed = confirm(
+    `Move ${selectedIds.length} selected ` + `emails to Gmail Trash?`,
+  );
 
-  button.innerText = "Moving to trash...";
-  button.disabled = true;
+  if (!confirmed) {
+    return;
+  }
+
+  deleteButton.disabled = true;
+  deleteButton.innerText = "Moving emails to trash...";
 
   chrome.runtime.sendMessage(
     {
       type: "DELETE_EMAILS",
-      ids,
+      ids: selectedIds,
     },
-    (res) => {
+    (response) => {
       if (chrome.runtime.lastError) {
-        button.disabled = false;
-        button.innerText = "Try again";
-        statusText.innerText = "Delete request failed.";
+        statusText.innerText = "Could not move emails to trash.";
+
+        deleteButton.disabled = false;
+        updateDeleteCount();
+        return;
+      }
+
+      if (!response || response.error) {
+        statusText.innerText =
+          response?.error || "Could not move emails to trash.";
+
+        deleteButton.disabled = false;
+        updateDeleteCount();
+        return;
+      }
+
+      const deletedIds = response.deletedIds || selectedIds;
+
+      // Remove them immediately from the UI.
+      currentEmails = currentEmails.filter((email) => {
+        return !deletedIds.includes(email.id);
+      });
+
+      statusText.innerText = `${deletedIds.length} emails ` + `moved to trash.`;
+
+      deleteButton.innerText = "Moved to Trash!";
+
+      deleteButton.style.background = "var(--success)";
+
+      renderList();
+    },
+  );
+}
+
+/* ================= AUTO CLEAN ================= */
+
+function startAutoClean() {
+  if (autoCleanRunning) {
+    return;
+  }
+
+  const confirmed = confirm(
+    "Auto Clean will scan up to 5,000 emails " +
+      "and automatically move only emails " +
+      "classified as not important with at " +
+      "least 80% confidence to Gmail Trash.\n\n" +
+      "Continue?",
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  autoCleanRunning = true;
+
+  autoCleanButton.disabled = true;
+  autoCleanButton.style.display = "none";
+  stopAutoButton.style.display = "block";
+
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+
+  statusText.innerText = "Starting automatic cleanup...";
+
+  chrome.runtime.sendMessage(
+    {
+      type: "START_AUTO_CLEAN",
+    },
+    (response) => {
+      autoCleanRunning = false;
+
+      autoCleanButton.disabled = false;
+      autoCleanButton.style.display = "block";
+
+      stopAutoButton.style.display = "none";
+
+      progressContainer.style.display = "none";
+
+      if (chrome.runtime.lastError) {
+        statusText.innerText = "Auto clean was interrupted.";
+
         console.error(chrome.runtime.lastError);
+
         return;
       }
 
-      if (!res || res.error) {
-        button.disabled = false;
-        button.innerText = "Try again";
-        statusText.innerText = res?.error || "Delete request failed.";
+      if (!response || response.error) {
+        statusText.innerText = response?.error || "Auto clean failed.";
+
         return;
       }
 
-      button.innerText = "Moved to Trash!";
-      button.style.background = "var(--success)";
-      statusText.innerText = `${ids.length} emails moved to trash.`;
+      statusText.innerText = response.cancelled
+        ? `Auto clean stopped. Scanned ` +
+          `${response.scanned}, moved ` +
+          `${response.deleted} to trash.`
+        : `Auto clean finished. Scanned ` +
+          `${response.scanned}, moved ` +
+          `${response.deleted} to trash.`;
 
-      currentEmails = currentEmails.filter((email) => !ids.includes(email.id));
+      // Existing results may contain emails
+      // that Auto Clean just deleted, so clear
+      // the stale list.
+      currentEmails = [];
+      renderList();
+    },
+  );
+}
 
-      setTimeout(() => {
-        button.style.background = "";
-        renderList();
-      }, 1200);
+function stopAutoClean() {
+  stopAutoButton.disabled = true;
+  stopAutoButton.innerText = "Stopping...";
+
+  chrome.runtime.sendMessage(
+    {
+      type: "STOP_AUTO_CLEAN",
+    },
+    () => {
+      statusText.innerText = "Stopping after the current batch...";
+
+      stopAutoButton.disabled = false;
+      stopAutoButton.innerText = "Stop Auto Clean";
     },
   );
 }

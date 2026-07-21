@@ -13,6 +13,7 @@
         --accent: #3b82f6;
         --danger: #ef4444;
         --success: #10b981;
+        --warning: #f59e0b;
       }
 
       body.dark {
@@ -22,8 +23,6 @@
         --text: #e5e7eb;
         --muted: #94a3b8;
         --accent: #60a5fa;
-        --danger: #ef4444;
-        --success: #10b981;
       }
 
       * {
@@ -76,6 +75,10 @@
         margin-bottom: 12px;
       }
 
+      .section:last-child {
+        margin-bottom: 0;
+      }
+
       .section-label {
         font-size: 11px;
         font-weight: 600;
@@ -100,7 +103,7 @@
       }
 
       .btn:disabled {
-        opacity: 0.6;
+        opacity: 0.55;
         cursor: not-allowed;
       }
 
@@ -115,11 +118,34 @@
         border: 1px solid var(--border);
       }
 
+      .btn-warning {
+        width: 100%;
+        background: var(--warning);
+        color: #111827;
+      }
+
+      .btn-stop {
+        width: 100%;
+        background: var(--danger);
+        color: white;
+        display: none;
+      }
+
+      .selection-actions {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
       #status-text {
         text-align: center;
         font-size: 12px;
         color: var(--muted);
         margin-top: 10px;
+        overflow-wrap: anywhere;
       }
 
       #progress-container {
@@ -169,20 +195,27 @@
       }
 
       .snippet {
+        margin-top: 3px;
         font-size: 11px;
         color: var(--muted);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-top: 3px;
       }
 
       .badge {
-        font-size: 10px;
-        margin-top: 6px;
-        color: var(--accent);
-        font-weight: 600;
         display: inline-block;
+        margin-top: 6px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .badge-important {
+        color: var(--accent);
+      }
+
+      .badge-review {
+        color: var(--warning);
       }
 
       .chk {
@@ -247,38 +280,50 @@
 
   <body>
     <div class="header">
-      <div class="title">Sweep N Spams</div>
+      <div class="title">Sweep N Spam</div>
       <div class="toggle" id="themeToggle">🌙 Dark</div>
     </div>
 
     <div class="controls">
       <div class="card">
         <div class="section">
-          <div class="section-label">Start fresh</div>
+          <div class="section-label">Scan emails</div>
 
           <div class="button-grid">
             <button id="btn-restart-50" class="btn btn-primary">
-              Scan New (50)
+              Scan New 50
             </button>
 
             <button id="btn-restart-500" class="btn btn-primary">
-              Deep Scan (500)
+              Scan New 500
             </button>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-label">Resume cleaning</div>
+          <div class="section-label">Continue scanning</div>
 
           <div class="button-grid">
             <button id="btn-resume-50" class="btn btn-secondary">
-              Load Next 50
+              Next 50
             </button>
 
             <button id="btn-resume-500" class="btn btn-secondary">
-              Load Next 500
+              Next 500
             </button>
           </div>
+        </div>
+
+        <div class="section">
+          <div class="section-label">Automatic cleanup</div>
+
+          <button id="btn-auto-clean" class="btn btn-warning">
+            Auto Clean Up to 5,000 Emails
+          </button>
+
+          <button id="btn-stop-auto" class="btn btn-stop">
+            Stop Auto Clean
+          </button>
         </div>
 
         <div id="progress-container">
@@ -287,6 +332,12 @@
 
         <div id="status-text">Ready.</div>
       </div>
+    </div>
+
+    <div id="selectionActions" class="selection-actions">
+      <button id="btn-select-all" class="btn btn-secondary">Select All</button>
+
+      <button id="btn-clear-all" class="btn btn-secondary">Clear All</button>
     </div>
 
     <div id="results" class="results"></div>
