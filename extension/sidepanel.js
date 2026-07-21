@@ -1,11 +1,13 @@
 let currentEmails = [];
 
 /* ================= DARK MODE ================= */
+
 document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("themeToggle");
 
   toggle.addEventListener("click", () => {
     document.body.classList.toggle("dark");
+
     toggle.innerText = document.body.classList.contains("dark")
       ? "☀ Light"
       : "🌙 Dark";
@@ -14,17 +16,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ================= BUTTONS ================= */
 
-// Restart
-document.getElementById("btn-restart-50").onclick = () =>
+document.getElementById("btn-restart-50").onclick = () => {
   startScan({ resume: false, limit: 50 });
-document.getElementById("btn-restart-500").onclick = () =>
-  startScan({ resume: false, limit: 500 });
+};
 
-// Resume
-document.getElementById("btn-resume-50").onclick = () =>
+document.getElementById("btn-restart-500").onclick = () => {
+  startScan({ resume: false, limit: 500 });
+};
+
+document.getElementById("btn-resume-50").onclick = () => {
   startScan({ resume: true, limit: 50 });
-document.getElementById("btn-resume-500").onclick = () =>
+};
+
+document.getElementById("btn-resume-500").onclick = () => {
   startScan({ resume: true, limit: 500 });
+};
 
 document.getElementById("btn-delete").onclick = deleteSelected;
 
@@ -37,49 +43,103 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 function updateProgress(processed, total) {
-  document.getElementById("progress-container").style.display = "block";
-  document.getElementById("progress-bar").style.width =
-    Math.round((processed / total) * 100) + "%";
-  document.getElementById("status-text").innerText = `Scanning... ${processed}`;
+  const progressContainer = document.getElementById("progress-container");
+  const progressBar = document.getElementById("progress-bar");
+  const statusText = document.getElementById("status-text");
+
+  progressContainer.style.display = "block";
+
+  const percentage =
+    total > 0 ? Math.min(Math.round((processed / total) * 100), 100) : 0;
+
+  progressBar.style.width = `${percentage}%`;
+  statusText.innerText = `Scanning... ${processed} of ${total}`;
 }
 
 /* ================= SCAN ================= */
 
 function startScan({ resume, limit }) {
-  document.getElementById("deleteWrapper").style.display = "none";
+  const deleteWrapper = document.getElementById("deleteWrapper");
+  const statusText = document.getElementById("status-text");
+
+  deleteWrapper.style.display = "none";
 
   updateProgress(0, limit);
 
-  document.querySelectorAll(".btn").forEach((b) => (b.disabled = true));
-
-  chrome.runtime.sendMessage({ type: "FETCH_EMAILS", resume, limit }, (res) => {
-    document.querySelectorAll(".btn").forEach((b) => (b.disabled = false));
-    document.getElementById("progress-container").style.display = "none";
-    document.getElementById("status-text").innerText = "Scan complete.";
-
-    if (!res || res.error) return;
-
-    currentEmails = resume ? [...currentEmails, ...res.emails] : res.emails;
-
-    renderList();
+  document.querySelectorAll(".btn").forEach((button) => {
+    button.disabled = true;
   });
+
+  chrome.runtime.sendMessage(
+    {
+      type: "FETCH_EMAILS",
+      resume,
+      limit,
+    },
+    (res) => {
+      document.querySelectorAll(".btn").forEach((button) => {
+        button.disabled = false;
+      });
+
+      document.getElementById("progress-container").style.display = "none";
+
+      if (chrome.runtime.lastError) {
+        statusText.innerText = "Could not scan emails.";
+        console.error(chrome.runtime.lastError);
+        return;
+      }
+
+      if (!res || res.error) {
+        statusText.innerText = res?.error || "Could not scan emails.";
+        return;
+      }
+
+      currentEmails = resume ? [...currentEmails, ...res.emails] : res.emails;
+
+      statusText.innerText = `Scan complete. ${currentEmails.length} emails loaded.`;
+
+      renderList();
+    },
+  );
 }
 
 /* ================= RENDER ================= */
 
 function renderList() {
   const results = document.getElementById("results");
+  const wrapper = document.getElementById("deleteWrapper");
+
   results.innerHTML = "";
 
-  if (!currentEmails.length) return;
+  if (!currentEmails.length) {
+    wrapper.style.display = "none";
+    return;
+  }
 
-  currentEmails.sort((a, b) =>
-    a.prediction.label === "not_important" ? -1 : 1
-  );
+  currentEmails.sort((a, b) => {
+    const aJunk = a.prediction?.label === "not_important";
+    const bJunk = b.prediction?.label === "not_important";
+
+    if (aJunk === bJunk) return 0;
+
+    return aJunk ? -1 : 1;
+  });
 
   currentEmails.forEach((email) => {
-    const isJunk = email.prediction.label === "not_important";
-    const confidence = Math.round((email.prediction.confidence || 0.85) * 100);
+    const label = email.prediction?.label || "review";
+    const isJunk = label === "not_important";
+    const isReview = label === "review";
+
+    const rawConfidence = email.prediction?.confidence ?? 0;
+    const confidence = Math.round(rawConfidence * 100);
+
+    let badgeText = "IMPORTANT";
+
+    if (isJunk) {
+      badgeText = "UNIMPORTANT";
+    } else if (isReview) {
+      badgeText = "REVIEW";
+    }
 
     const item = document.createElement("div");
     item.className = "email-item";
@@ -87,17 +147,34 @@ function renderList() {
     item.innerHTML = `
       ${
         isJunk
-          ? `<input type="checkbox" class="chk" data-id="${email.id}" checked>`
+          ? `<input
+               type="checkbox"
+               class="chk"
+               data-id="${escapeHtml(email.id)}"
+               checked
+             />`
           : `<div style="width:16px"></div>`
       }
+
       <div class="email-content">
-        <div class="subject">${email.subject}</div>
-        <div class="snippet">${email.body}</div>
-        <span class="badge">${isJunk ? "UNIMPORTANT" : "IMPORTANT"}</span>
+        <div class="subject">${escapeHtml(
+          email.subject || "(no subject)",
+        )}</div>
+
+        <div class="snippet">${escapeHtml(email.body || "")}</div>
+
+        <span class="badge">${badgeText}</span>
+
         <div class="confidence">
-          <div class="confidence-label">Confidence: ${confidence}%</div>
+          <div class="confidence-label">
+            Confidence: ${confidence}%
+          </div>
+
           <div class="confidence-bar">
-            <div class="confidence-fill" style="width:${confidence}%"></div>
+            <div
+              class="confidence-fill"
+              style="width:${Math.min(confidence, 100)}%"
+            ></div>
           </div>
         </div>
       </div>
@@ -106,7 +183,6 @@ function renderList() {
     results.appendChild(item);
   });
 
-  // Attach listener to every checkbox to update the count instantly
   document.querySelectorAll(".chk").forEach((checkbox) => {
     checkbox.addEventListener("change", updateDeleteCount);
   });
@@ -114,52 +190,83 @@ function renderList() {
   updateDeleteCount();
 }
 
-/* ================= DELETE UI LOGIC ================= */
+/* ================= DELETE BUTTON ================= */
 
 function updateDeleteCount() {
   const checkedCount = document.querySelectorAll(".chk:checked").length;
   const wrapper = document.getElementById("deleteWrapper");
-  const btn = document.getElementById("btn-delete");
+  const button = document.getElementById("btn-delete");
+
+  wrapper.style.display = currentEmails.length > 0 ? "block" : "none";
+
+  button.style.background = "";
 
   if (checkedCount > 0) {
-    wrapper.style.display = "block";
-    // Only update text if we are not currently in the "Deleted!" state
-    if (!btn.disabled) {
-      btn.innerText = `Move ${checkedCount} Items to Trash`;
-    }
+    button.disabled = false;
+    button.innerText = `Move ${checkedCount} Items to Trash`;
   } else {
-    wrapper.style.display = "none";
+    button.disabled = true;
+    button.innerText = "Select emails to move to trash";
   }
 }
 
+/* ================= DELETE EMAILS ================= */
+
 function deleteSelected() {
   const ids = Array.from(document.querySelectorAll(".chk:checked")).map(
-    (c) => c.dataset.id
+    (checkbox) => checkbox.dataset.id,
   );
+
   if (!ids.length) return;
 
-  const btn = document.getElementById("btn-delete");
+  const button = document.getElementById("btn-delete");
+  const statusText = document.getElementById("status-text");
 
-  // 1. Loading State
-  btn.innerText = "Deleting...";
-  btn.disabled = true;
+  button.innerText = "Moving to trash...";
+  button.disabled = true;
 
-  chrome.runtime.sendMessage({ type: "DELETE_EMAILS", ids }, () => {
-    // 2. Success State
-    btn.innerText = "Done!";
-    btn.style.background = "var(--success)"; // Uses the green variable
+  chrome.runtime.sendMessage(
+    {
+      type: "DELETE_EMAILS",
+      ids,
+    },
+    (res) => {
+      if (chrome.runtime.lastError) {
+        button.disabled = false;
+        button.innerText = "Try again";
+        statusText.innerText = "Delete request failed.";
+        console.error(chrome.runtime.lastError);
+        return;
+      }
 
-    // 3. Wait 1.5s, then refresh UI
-    setTimeout(() => {
-      // Reset button for next time
-      btn.disabled = false;
-      btn.style.background = ""; // Revert to default red
+      if (!res || res.error) {
+        button.disabled = false;
+        button.innerText = "Try again";
+        statusText.innerText = res?.error || "Delete request failed.";
+        return;
+      }
 
-      // Remove emails from local list
-      currentEmails = currentEmails.filter((e) => !ids.includes(e.id));
+      button.innerText = "Moved to Trash!";
+      button.style.background = "var(--success)";
+      statusText.innerText = `${ids.length} emails moved to trash.`;
 
-      // Render will automatically hide the button because checked items are gone
-      renderList();
-    }, 1500);
-  });
+      currentEmails = currentEmails.filter((email) => !ids.includes(email.id));
+
+      setTimeout(() => {
+        button.style.background = "";
+        renderList();
+      }, 1200);
+    },
+  );
+}
+
+/* ================= HTML SAFETY ================= */
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }

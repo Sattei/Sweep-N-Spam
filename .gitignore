@@ -17,3 +17,5 @@ __pycache__/
 
 # Node
 node_modules/
+backend/email_classifier_pytorch/
+backend/.venv/

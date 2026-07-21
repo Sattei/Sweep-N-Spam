@@ -6,10 +6,10 @@
   "permissions": ["identity", "storage", "sidePanel", "tabs"],
   "host_permissions": [
     "https://www.googleapis.com/*",
-    "http://localhost:8000/*"
+    "http://localhost:8001/*"
   ],
   "oauth2": {
-    "client_id": "544433065636-1v5v1p8cjml4fgf3k82vsiaqagg2r444.apps.googleusercontent.com",
+    "client_id": "544433065636-himgodgttc26ud6c3fuuog2g4tnfn2t0.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/gmail.modify"]
   },
   "background": {

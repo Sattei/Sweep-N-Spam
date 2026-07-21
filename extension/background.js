@@ -75,7 +75,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 const subject = extractSubject(data.payload.headers);
                 const body = data.snippet || "";
 
-                const clsRes = await fetch("http://localhost:8000/predict", {
+                const clsRes = await fetch("http://localhost:8001/predict", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ subject, body }),
